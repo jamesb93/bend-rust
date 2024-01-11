@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 // External crates
 use getopts::Options;
-use hound::WavWriter;
+use hound::{WavWriter, WavSpec};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 
@@ -116,6 +116,10 @@ fn main() {
     let sample_rate: u32 = matches.opt_str("s").unwrap_or("44100".to_string()).parse().unwrap_or(44100);
     let limit: u64 = matches.opt_str("l").unwrap_or("100".to_string()).parse().unwrap_or(100) * 1024 * 1024;
 
+    if matches.free.len() < 2 {
+        eprintln!("Error: Two arguments are required: input path and output path.");
+        return;
+    }
 
     let input_path = Path::new(&matches.free[0]);
     let output_path = Path::new(&matches.free[1]);
@@ -124,24 +128,10 @@ fn main() {
         eprintln!("Error: Input and output paths cannot be the same.");
         return;
     }
-    
-    if !input_path.is_dir() {
-        eprintln!("Error: Input path is not a directory.");
-        return;
-    }
-    
-    if output_path.exists() && !output_path.is_dir() {
-        eprintln!("Error: Output path exists but is not a directory.");
-        return;
-    }
 
-    if input_path.is_dir() && output_path.is_file() {
-        eprintln!("Error: Input is a directory but output is a file.");
+    if input_path.is_dir() && output_path.is_file() || input_path.is_file() && output_path.is_dir() {
+        eprintln!("Error: Input and output paths are not both files or directories.");
         return;
-    }
-    
-    if !output_path.exists() {
-        fs::create_dir_all(output_path).expect("Failed to create output directory");
     }
 
     if input_path == output_path {
@@ -150,17 +140,21 @@ fn main() {
     }
 
     let total_size = Arc::new(AtomicU64::new(0));
-
-    let pb = ProgressBar::new(limit);
-    pb.set_style(ProgressStyle::default_bar()
-        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-        .progress_chars("#>-"));
     
-    if input_path.is_dir() && output_path.is_dir() {
+    if input_path.is_dir() {
+        if !output_path.exists() {
+            println!("Creating output path for you at: {}", output_path.display());
+            fs::create_dir_all(output_path).expect("Failed to create output directory");
+        }
+        let pb = ProgressBar::new(limit);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+            .progress_chars("#>-"));
         process_directory(input_path, output_path, sample_rate, bit_depth, total_size, limit, &pb);
+        pb.finish_with_message("Done!");
     } else {
         process_file(input_path, output_path, sample_rate, bit_depth);
+        println!("Done processing: {}", input_path.display());
     }
     
-    pb.finish_with_message("done");
 }
