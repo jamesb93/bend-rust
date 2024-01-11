@@ -113,6 +113,11 @@ fn main() {
     };
 
     let bit_depth: u16 = matches.opt_str("b").unwrap_or("16".to_string()).parse().unwrap_or(16);
+
+    if ![8, 16].contains(&bit_depth) {
+        eprintln!("Error: Bit depth must be one of: 8, 16 (int)");
+        return;
+    }
     let sample_rate: u32 = matches.opt_str("s").unwrap_or("44100".to_string()).parse().unwrap_or(44100);
     let limit: u64 = matches.opt_str("l").unwrap_or("100".to_string()).parse().unwrap_or(100) * 1024 * 1024;
 
