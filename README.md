@@ -16,7 +16,7 @@ To build `bend` yourself you need a valid `rust` toolchain greater than version 
 
 Once you have `rustc` installed (the `rust` compiler), you can `cd` to this repository and cast the following spell:
 
-`cargo  install --path .`
+`cargo install --path .`
 
 You now have the `bend` binary in your path which can be invoked. See the Usage section.
 
